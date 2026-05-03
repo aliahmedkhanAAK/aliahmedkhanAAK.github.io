@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Escape from the rose garden!</title>
+  <style>
+    :root {
+      --bg: #1a0f16;
+      --panel: rgba(255,255,255,0.08);
+      --panel-border: rgba(255,255,255,0.14);
+      --text: #fff7fb;
+      --ground: #ff8fd8;
+      --ground-dark: #e65ab9;
+      --wall: #ff3347;
+      --wall-dark: #a1001e;
+      --wall-light: #ff7a87;
+      --player: #32d25a;
+      --player-dark: #118b30;
+      --npc: #a1a7b0;
+      --npc-dark: #5f646b;
+      --eye: #43a3ff;
+      --finish: #ffcf3b;
+      --finish-dark: #c58b00;
+      --button: #2b1a24;
+      --button-border: rgba(255,255,255,0.16);
+      --shadow: rgba(0,0,0,0.28);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #341a28 0%, var(--bg) 60%);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      touch-action: none;
+      overscroll-behavior: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    button {
+      border: 0;
+      background: var(--button);
+      color: var(--text);
+      font: inherit;
+    }
+
+    #app {
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding:
+        calc(8px + env(safe-area-inset-top))
+        10px
+        calc(12px + env(safe-area-inset-bottom))
+        10px;
+    }
+
+    #hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: stretch;
+      justify-content: space-between;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 2px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 10px 12px;
+      box-shadow: 0 10px 24px var(--shadow);
+      backdrop-filter: blur(6px);
+    }
+
+    #titlePanel {
+      flex: 1 1 220px;
+      min-width: 0;
+    }
+
+    #titlePanel strong {
+      display: block;
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+      margin-bottom: 2px;
+    }
+
+    #titlePanel span {
+      opacity: 0.88;
+      font-size: 0.94rem;
+    }
+
+    #statsPanel {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      white-space: nowrap;
+      font-weight: 700;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    #hudButtons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .hudBtn,
+    .controlBtn,
+    #playAgain {
+      border-radius: 16px;
+      border: 2px solid var(--button-border);
+      box-shadow: 0 8px 18px var(--shadow);
+      min-height: 48px;
+      min-width: 48px;
+    }
+
+    .hudBtn {
+      padding: 10px 14px;
+      font-weight: 700;
+    }
+
+    #canvasWrap {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 220px;
+      border-radius: 24px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0)),
+        #3f2032;
+      border: 3px solid rgba(255,255,255,0.12);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 20px 30px rgba(0,0,0,0.26);
+      touch-action: none;
+    }
+
+    #game {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    #fogCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    #emojiLayer {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .emojiSprite {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      text-rendering: optimizeLegibility;
+      font-variant-emoji: emoji;
+      font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      will-change: left, top, font-size;
+    }
+
+    .wallEmoji {
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.18));
+    }
+
+    .entityEmoji {
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.24));
+    }
+
+    #message {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+      background: rgba(12, 5, 10, 0.15);
+    }
+
+    #message.show {
+      opacity: 1;
+      pointer-events: auto;
+      background: rgba(12, 5, 10, 0.45);
+    }
+
+    #messageCard {
+      width: min(100%, 360px);
+      text-align: center;
+      background: rgba(29, 13, 24, 0.92);
+      border: 2px solid rgba(255,255,255,0.14);
+      border-radius: 22px;
+      padding: 20px 18px 18px;
+      box-shadow: 0 18px 38px rgba(0,0,0,0.34);
+    }
+
+    #messageCard h2 {
+      margin: 0 0 8px;
+      font-size: 1.45rem;
+    }
+
+    #messageCard p {
+      margin: 0 0 14px;
+      line-height: 1.35;
+      opacity: 0.94;
+    }
+
+    #playAgain {
+      padding: 12px 16px;
+      font-weight: 800;
+      width: 100%;
+    }
+
+    #controls {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(58px, 78px));
+      grid-template-rows: repeat(2, minmax(54px, 70px));
+      gap: 8px;
+      justify-content: center;
+      align-content: center;
+      align-self: center;
+    }
+
+    .controlBtn {
+      font-size: 1.5rem;
+      font-weight: 900;
+    }
+
+    .controlBtn:active,
+    .hudBtn:active,
+    #playAgain:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    #upBtn { grid-column: 2; grid-row: 1; }
+    #leftBtn { grid-column: 1; grid-row: 2; }
+    #downBtn { grid-column: 2; grid-row: 2; }
+    #rightBtn { grid-column: 3; grid-row: 2; }
+
+    @media (max-width: 420px) {
+      #statsPanel {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      #hudButtons {
+        width: 100%;
+      }
+
+      .hudBtn {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="hud">
+      <div class="panel" id="titlePanel">
+        <strong>Escape from the rose garden!</strong>
+        <span>Reach the golden star. Birds mark dead ends, moving fog drifts over the maze, and hidden passages can open in the rose walls.</span>
+      </div>
+      <div class="panel" id="statsPanel" aria-live="polite">
+        <span id="steps">Steps: 0</span>
+        <span id="timer">Time: 0.0 s</span>
+        <span id="shiftTimer">Wall shift: 10.0 s</span>
+      </div>
+      <div id="hudButtons">
+        <button class="hudBtn" id="resetBtn" type="button">Restart</button>
+        <button class="hudBtn" id="newMazeBtn" type="button">New maze</button>
+      </div>
+    </div>
+
+    <div id="canvasWrap">
+      <canvas id="game" aria-label="Escape from the rose garden game"></canvas>
+      <div id="emojiLayer" aria-hidden="true"></div>
+      <canvas id="fogCanvas" aria-hidden="true"></canvas>
+      <div id="message" role="dialog" aria-modal="true" aria-live="polite">
+        <div id="messageCard">
+          <h2 id="messageTitle">Maze cleared</h2>
+          <p id="messageText">You reached the golden star.</p>
+          <button id="playAgain" type="button">Play another maze</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="controls" aria-label="Movement controls">
+      <button class="controlBtn" id="upBtn" type="button" aria-label="Move up">▲</button>
+      <button class="controlBtn" id="leftBtn" type="button" aria-label="Move left">◀</button>
+      <button class="controlBtn" id="downBtn" type="button" aria-label="Move down">▼</button>
+      <button class="controlBtn" id="rightBtn" type="button" aria-label="Move right">▶</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const fogCanvas = document.getElementById('fogCanvas');
+    const fogCtx = fogCanvas.getContext('2d');
+    const wrap = document.getElementById('canvasWrap');
+    const emojiLayer = document.getElementById('emojiLayer');
+    const stepsEl = document.getElementById('steps');
+    const timerEl = document.getElementById('timer');
+    const shiftTimerEl = document.getElementById('shiftTimer');
+    const resetBtn = document.getElementById('resetBtn');
+    const newMazeBtn = document.getElementById('newMazeBtn');
+    const playAgainBtn = document.getElementById('playAgain');
+    const messageEl = document.getElementById('message');
+    const messageTextEl = document.getElementById('messageText');
+
+    const WALL_SHIFT_INTERVAL_MS = 10000;
+    const WALL_OPEN_DURATION_MS = 10000;
+    const MIN_FORKS_ON_ROUTE = 3;
+
+    const css = getComputedStyle(document.documentElement);
+    const COLORS = {
+      ground: css.getPropertyValue('--ground').trim(),
+      groundDark: css.getPropertyValue('--ground-dark').trim(),
+      wall: css.getPropertyValue('--wall').trim(),
+      wallDark: css.getPropertyValue('--wall-dark').trim(),
+      wallLight: css.getPropertyValue('--wall-light').trim(),
+      player: css.getPropertyValue('--player').trim(),
+      playerDark: css.getPropertyValue('--player-dark').trim(),
+      npc: css.getPropertyValue('--npc').trim(),
+      npcDark: css.getPropertyValue('--npc-dark').trim(),
+      eye: css.getPropertyValue('--eye').trim(),
+      finish: css.getPropertyValue('--finish').trim(),
+      finishDark: css.getPropertyValue('--finish-dark').trim()
+    };
+
+    const state = {
+      rows: 21,
+      cols: 15,
+      maze: [],
+      start: { r: 1, c: 1 },
+      finish: { r: 1, c: 1 },
+      player: { r: 1, c: 1 },
+      renderPos: { r: 1, c: 1 },
+      decoys: [],
+      steps: 0,
+      startTime: performance.now(),
+      elapsed: 0,
+      won: false,
+      touchStart: null,
+      tile: 24,
+      ox: 0,
+      oy: 0,
+      tempOpen: null,
+      nextWallShiftAt: 0,
+      fogPhase: Math.random() * Math.PI * 2,
+      levelId: 0,
+      emojiLayerKey: '',
+      metamorphStart: 0,
+      showWinOverlayAt: 0,
+      winOverlayShown: false
+    };
+
+    let playerEmojiEl = null;
+
+    function randInt(max) {
+      return Math.floor(Math.random() * max);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = randInt(i + 1);
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function getMazeSize() {
+      const w = Math.max(320, wrap.clientWidth);
+      const h = Math.max(220, wrap.clientHeight);
+      const aspect = w / h;
+
+      let cols = 15;
+      let rows = 21;
+
+      if (aspect > 1.25) {
+        cols = 27;
+        rows = 17;
+      } else if (aspect > 0.9) {
+        cols = 21;
+        rows = 17;
+      }
+
+      return { rows, cols };
+    }
+
+    function makeGrid(rows, cols, fill = 1) {
+      return Array.from({ length: rows }, () => Array(cols).fill(fill));
+    }
+
+    function generatePerfectMaze(rows, cols) {
+      const maze = makeGrid(rows, cols, 1);
+      const stack = [[1, 1]];
+      maze[1][1] = 0;
+
+      while (stack.length) {
+        const [r, c] = stack[stack.length - 1];
+        const dirs = shuffle([
+          [0, 2],
+          [2, 0],
+          [0, -2],
+          [-2, 0]
+        ]);
+
+        let carved = false;
+
+        for (const [dr, dc] of dirs) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr <= 0 || nr >= rows - 1 || nc <= 0 || nc >= cols - 1) continue;
+          if (maze[nr][nc] === 0) continue;
+
+          maze[r + dr / 2][c + dc / 2] = 0;
+          maze[nr][nc] = 0;
+          stack.push([nr, nc]);
+          carved = true;
+          break;
+        }
+
+        if (!carved) stack.pop();
+      }
+
+      return maze;
+    }
+
+    function neighborsOfPathCell(maze, r, c) {
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      const hits = [];
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr < 0 || nr >= maze.length || nc < 0 || nc >= maze[0].length) continue;
+        if (maze[nr][nc] === 0) hits.push([nr, nc]);
+      }
+      return hits;
+    }
+
+    function farthestCell(maze, start) {
+      const rows = maze.length;
+      const cols = maze[0].length;
+      const dist = makeGrid(rows, cols, -1);
+      const queue = [start];
+      dist[start.r][start.c] = 0;
+      let best = { ...start, d: 0 };
+
+      for (let i = 0; i < queue.length; i++) {
+        const { r, c } = queue[i];
+        const d = dist[r][c];
+        if (d > best.d) best = { r, c, d };
+
+        for (const [nr, nc] of neighborsOfPathCell(maze, r, c)) {
+          if (dist[nr][nc] !== -1) continue;
+          dist[nr][nc] = d + 1;
+          queue.push({ r: nr, c: nc });
+        }
+      }
+
+      return { r: best.r, c: best.c };
+    }
+
+    function getPathBetween(maze, start, finish) {
+      const rows = maze.length;
+      const cols = maze[0].length;
+      const visited = makeGrid(rows, cols, false);
+      const parent = new Map();
+      const queue = [start];
+      visited[start.r][start.c] = true;
+
+      for (let i = 0; i < queue.length; i++) {
+        const { r, c } = queue[i];
+        if (r === finish.r && c === finish.c) break;
+
+        for (const [nr, nc] of neighborsOfPathCell(maze, r, c)) {
+          if (visited[nr][nc]) continue;
+          visited[nr][nc] = true;
+          parent.set(`${nr},${nc}`, { r, c });
+          queue.push({ r: nr, c: nc });
+        }
+      }
+
+      const path = [];
+      let cur = { ...finish };
+      while (cur) {
+        path.push(cur);
+        if (cur.r === start.r && cur.c === start.c) break;
+        cur = parent.get(`${cur.r},${cur.c}`);
+      }
+
+      return path.reverse();
+    }
+
+    function countForksOnPath(maze, path, start, finish) {
+      let forks = 0;
+      for (const cell of path) {
+        if ((cell.r === start.r && cell.c === start.c) || (cell.r === finish.r && cell.c === finish.c)) continue;
+        const exits = neighborsOfPathCell(maze, cell.r, cell.c).length;
+        if (exits >= 3) forks += 1;
+      }
+      return forks;
+    }
+
+    function generateMaze(rows, cols) {
+      let best = null;
+      for (let attempt = 0; attempt < 180; attempt++) {
+        const maze = generatePerfectMaze(rows, cols);
+        const start = { r: 1, c: 1 };
+        const finish = farthestCell(maze, start);
+        const path = getPathBetween(maze, start, finish);
+        const forksOnRoute = countForksOnPath(maze, path, start, finish);
+
+        const candidate = { maze, start, finish, path, forksOnRoute };
+        if (!best || candidate.forksOnRoute > best.forksOnRoute || candidate.path.length > best.path.length) {
+          best = candidate;
+        }
+        if (forksOnRoute >= MIN_FORKS_ON_ROUTE) {
+          return candidate;
+        }
+      }
+      return best;
+    }
+
+    function findDeadEnds(maze, start, finish) {
+      const cells = [];
+      for (let r = 1; r < maze.length - 1; r++) {
+        for (let c = 1; c < maze[0].length - 1; c++) {
+          if (maze[r][c] !== 0) continue;
+          if ((r === start.r && c === start.c) || (r === finish.r && c === finish.c)) continue;
+          const exits = neighborsOfPathCell(maze, r, c).length;
+          if (exits === 1) cells.push({ r, c });
+        }
+      }
+      return cells;
+    }
+
+    function getTemporaryWallCandidates() {
+      const candidates = [];
+      for (let r = 1; r < state.rows - 1; r++) {
+        for (let c = 1; c < state.cols - 1; c++) {
+          if (state.maze[r][c] !== 1) continue;
+          if (state.tempOpen && state.tempOpen.r === r && state.tempOpen.c === c) continue;
+
+          const up = state.maze[r - 1][c] === 0;
+          const down = state.maze[r + 1][c] === 0;
+          const left = state.maze[r][c - 1] === 0;
+          const right = state.maze[r][c + 1] === 0;
+
+          const linksVertical = up && down;
+          const linksHorizontal = left && right;
+          if (!linksVertical && !linksHorizontal) continue;
+
+          if ((r === state.start.r && c === state.start.c) || (r === state.finish.r && c === state.finish.c)) continue;
+
+          candidates.push({ r, c });
+        }
+      }
+      return candidates;
+    }
+
+    function openRandomWall(now = performance.now()) {
+      const candidates = getTemporaryWallCandidates();
+      if (!candidates.length) {
+        state.nextWallShiftAt = now + WALL_SHIFT_INTERVAL_MS;
+        return;
+      }
+
+      const chosen = candidates[randInt(candidates.length)];
+      state.maze[chosen.r][chosen.c] = 0;
+      state.tempOpen = {
+        r: chosen.r,
+        c: chosen.c,
+        closesAt: now + WALL_OPEN_DURATION_MS
+      };
+      state.nextWallShiftAt = now + WALL_SHIFT_INTERVAL_MS;
+    }
+
+    function closeTemporaryWallIfDue(now = performance.now()) {
+      if (!state.tempOpen) return;
+      if (now < state.tempOpen.closesAt) return;
+
+      const { r, c } = state.tempOpen;
+      if (state.player.r === r && state.player.c === c) {
+        state.tempOpen.closesAt = now + 800;
+        return;
+      }
+
+      state.maze[r][c] = 1;
+      state.tempOpen = null;
+    }
+
+    function setOverlay(show, text = '') {
+      messageEl.classList.toggle('show', show);
+      if (text) messageTextEl.textContent = text;
+    }
+
+    function buildLevel() {
+      state.levelId += 1;
+      state.emojiLayerKey = '';
+      const size = getMazeSize();
+      state.rows = size.rows;
+      state.cols = size.cols;
+
+      const level = generateMaze(state.rows, state.cols);
+      state.maze = level.maze;
+      state.start = { ...level.start };
+      state.finish = { ...level.finish };
+      state.decoys = findDeadEnds(state.maze, state.start, state.finish);
+
+      restartLevel();
+    }
+
+    function restartLevel() {
+      if (state.tempOpen) {
+        state.maze[state.tempOpen.r][state.tempOpen.c] = 1;
+      }
+
+      state.player = { ...state.start };
+      state.renderPos = { ...state.start };
+      state.steps = 0;
+      state.startTime = performance.now();
+      state.elapsed = 0;
+      state.won = false;
+      state.tempOpen = null;
+      state.nextWallShiftAt = state.startTime + WALL_SHIFT_INTERVAL_MS;
+      state.emojiLayerKey = '';
+      state.metamorphStart = 0;
+      state.showWinOverlayAt = 0;
+      state.winOverlayShown = false;
+      setOverlay(false);
+      updateHud();
+    }
+
+    function updateHud(now = performance.now()) {
+      state.elapsed = state.won ? state.elapsed : (now - state.startTime) / 1000;
+      stepsEl.textContent = `Steps: ${state.steps}`;
+      timerEl.textContent = `Time: ${state.elapsed.toFixed(1)} s`;
+
+      const remaining = state.won
+        ? 0
+        : Math.max(0, (state.nextWallShiftAt - now) / 1000);
+      shiftTimerEl.textContent = `Wall shift: ${remaining.toFixed(1)} s`;
+    }
+
+    function resizeCanvas() {
+      const rect = wrap.getBoundingClientRect();
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      fogCanvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      fogCanvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      fogCanvas.style.width = `${rect.width}px`;
+      fogCanvas.style.height = `${rect.height}px`;
+      fogCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function layoutBoard() {
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      const pad = 8;
+      state.tile = Math.max(10, Math.floor(Math.min((w - pad * 2) / state.cols, (h - pad * 2) / state.rows)));
+      state.ox = Math.floor((w - state.tile * state.cols) / 2);
+      state.oy = Math.floor((h - state.tile * state.rows) / 2);
+    }
+
+    function drawGround(x, y, size, r, c) {
+      ctx.fillStyle = COLORS.ground;
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = COLORS.groundDark;
+      if ((r + c) % 2 === 0) {
+        ctx.fillRect(x + size * 0.08, y + size * 0.76, size * 0.84, size * 0.14);
+      } else {
+        ctx.fillRect(x + size * 0.14, y + size * 0.12, size * 0.12, size * 0.76);
+      }
+
+      if (state.tempOpen && state.tempOpen.r === r && state.tempOpen.c === c) {
+        ctx.strokeStyle = 'rgba(255, 241, 184, 0.95)';
+        ctx.lineWidth = Math.max(2, size * 0.08);
+        ctx.strokeRect(x + size * 0.12, y + size * 0.12, size * 0.76, size * 0.76);
+      }
+    }
+
+    function drawWall(x, y, size) {
+      ctx.fillStyle = 'rgba(104, 20, 38, 0.92)';
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = 'rgba(255, 232, 242, 0.12)';
+      ctx.fillRect(x + size * 0.06, y + size * 0.06, size * 0.88, size * 0.88);
+    }
+
+    function starPoints(cx, cy, outerR, innerR, spikes = 5) {
+      const pts = [];
+      let angle = -Math.PI / 2;
+      const step = Math.PI / spikes;
+
+      for (let i = 0; i < spikes * 2; i++) {
+        const radius = i % 2 === 0 ? outerR : innerR;
+        pts.push({
+          x: cx + Math.cos(angle) * radius,
+          y: cy + Math.sin(angle) * radius
+        });
+        angle += step;
+      }
+      return pts;
+    }
+
+    function drawStarShape(cx, cy, outerR, innerR, fill, stroke) {
+      const pts = starPoints(cx, cy, outerR, innerR);
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineTo(pts[i].x, pts[i].y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = Math.max(2, outerR * 0.15);
+      ctx.stroke();
+    }
+
+    function drawFinish(x, y, size) {
+      const cx = x + size * 0.5;
+      const cy = y + size * 0.5;
+
+      ctx.fillStyle = 'rgba(255, 226, 118, 0.18)';
+      ctx.fillRect(x + size * 0.08, y + size * 0.08, size * 0.84, size * 0.84);
+
+      drawStarShape(cx, cy, size * 0.34, size * 0.15, COLORS.finishDark, 'rgba(0,0,0,0.22)');
+      drawStarShape(cx, cy, size * 0.29, size * 0.13, COLORS.finish, COLORS.finishDark);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.fillRect(x + size * 0.42, y + size * 0.18, size * 0.08, size * 0.18);
+      ctx.fillRect(x + size * 0.28, y + size * 0.31, size * 0.18, size * 0.08);
+    }
+
+    function drawEntity() {
+      // Emoji entities are rendered in a DOM overlay for better mobile-browser compatibility.
+    }
+
+    function createEmojiSprite(emoji, centerX, centerY, size, className = '') {
+      const el = document.createElement('span');
+      el.className = `emojiSprite ${className}`.trim();
+      el.textContent = emoji;
+      el.style.left = `${centerX}px`;
+      el.style.top = `${centerY}px`;
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+      el.style.fontSize = `${Math.max(14, size * 0.92)}px`;
+      return el;
+    }
+
+    function rebuildEmojiLayer() {
+      const tempKey = state.tempOpen ? `${state.tempOpen.r},${state.tempOpen.c}` : 'none';
+      const key = [state.levelId, state.tile, state.ox, state.oy, tempKey].join('|');
+      if (state.emojiLayerKey === key) return;
+
+      emojiLayer.innerHTML = '';
+      const frag = document.createDocumentFragment();
+
+      for (let r = 0; r < state.rows; r++) {
+        for (let c = 0; c < state.cols; c++) {
+          if (state.maze[r][c] !== 1) continue;
+          const centerX = state.ox + c * state.tile + state.tile * 0.5;
+          const centerY = state.oy + r * state.tile + state.tile * 0.53;
+          frag.appendChild(createEmojiSprite('🌹', centerX, centerY, state.tile, 'wallEmoji'));
+        }
+      }
+
+      for (const npc of state.decoys) {
+        const centerX = state.ox + npc.c * state.tile + state.tile * 0.5;
+        const centerY = state.oy + npc.r * state.tile + state.tile * 0.53;
+        frag.appendChild(createEmojiSprite('🐦', centerX, centerY, state.tile, 'entityEmoji'));
+      }
+
+      const playerX = state.ox + state.renderPos.c * state.tile + state.tile * 0.5;
+      const playerY = state.oy + state.renderPos.r * state.tile + state.tile * 0.53;
+      playerEmojiEl = createEmojiSprite('🐛', playerX, playerY, state.tile, 'entityEmoji');
+      frag.appendChild(playerEmojiEl);
+
+      emojiLayer.appendChild(frag);
+      state.emojiLayerKey = key;
+    }
+
+    function syncPlayerEmoji(now = performance.now()) {
+      if (!playerEmojiEl) return;
+      playerEmojiEl.style.left = `${state.ox + state.renderPos.c * state.tile + state.tile * 0.5}px`;
+      playerEmojiEl.style.top = `${state.oy + state.renderPos.r * state.tile + state.tile * 0.53}px`;
+      playerEmojiEl.style.width = `${state.tile}px`;
+      playerEmojiEl.style.height = `${state.tile}px`;
+
+      const baseFont = Math.max(14, state.tile * 0.92);
+      let emoji = '🐛';
+      let scale = 1;
+      let rotate = 0;
+
+      if (state.won && state.metamorphStart) {
+        const p = Math.min(1, Math.max(0, (now - state.metamorphStart) / 1400));
+        if (p < 0.38) {
+          emoji = '🐛';
+          scale = 1 - p * 0.28;
+          rotate = Math.sin(p * Math.PI * 8) * 8;
+        } else {
+          emoji = '🦋';
+          const q = (p - 0.38) / 0.62;
+          scale = 0.86 + Math.sin(q * Math.PI) * 0.42;
+          rotate = Math.sin(q * Math.PI * 10) * 11;
+        }
+      }
+
+      playerEmojiEl.textContent = emoji;
+      playerEmojiEl.style.fontSize = `${baseFont * scale}px`;
+      playerEmojiEl.style.transform = `translate(-50%, -50%) rotate(${rotate}deg)`;
+    }
+
+    function drawStartMarker(x, y, size) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.88)';
+      ctx.lineWidth = Math.max(2, size * 0.08);
+      ctx.strokeRect(x + size * 0.16, y + size * 0.16, size * 0.68, size * 0.68);
+    }
+
+    function drawFogBlob(cx, cy, rx, ry, rotation = 0) {
+      fogCtx.save();
+      fogCtx.translate(cx, cy);
+      fogCtx.rotate(rotation);
+      fogCtx.beginPath();
+      fogCtx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+      fogCtx.fillStyle = 'rgba(247, 240, 245, 1)';
+      fogCtx.shadowColor = 'rgba(255, 248, 252, 0.95)';
+      fogCtx.shadowBlur = Math.max(10, Math.min(rx, ry) * 0.18);
+      fogCtx.fill();
+      fogCtx.restore();
+    }
+
+    function drawMovingFog(now) {
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      fogCtx.clearRect(0, 0, w, h);
+
+      const boardW = state.tile * state.cols;
+      const boardH = state.tile * state.rows;
+      const t = now / 1000;
+      const phase = state.fogPhase;
+      const cx = state.ox + boardW * (0.18 + 0.64 * ((Math.sin(t * 0.19 + phase) + 1) / 2));
+      const cy = state.oy + boardH * (0.16 + 0.66 * ((Math.cos(t * 0.15 + phase * 0.7) + 1) / 2));
+      const radius = Math.max(state.tile * 2.9, Math.min(boardW, boardH) * 0.19);
+
+      fogCtx.save();
+      fogCtx.beginPath();
+      fogCtx.rect(state.ox, state.oy, boardW, boardH);
+      fogCtx.clip();
+
+      drawFogBlob(cx, cy, radius * 0.78, radius * 0.56, Math.sin(t * 0.13 + phase) * 0.22);
+      drawFogBlob(cx - radius * 0.55, cy + radius * 0.1, radius * 0.52, radius * 0.38, -0.18);
+      drawFogBlob(cx + radius * 0.58, cy - radius * 0.12, radius * 0.56, radius * 0.4, 0.16);
+      drawFogBlob(cx, cy - radius * 0.42, radius * 0.38, radius * 0.28, 0.05);
+
+      fogCtx.restore();
+    }
+
+    function tryMove(dr, dc) {
+      if (state.won) return;
+      const nr = state.player.r + dr;
+      const nc = state.player.c + dc;
+      if (nr < 0 || nr >= state.rows || nc < 0 || nc >= state.cols) return;
+      if (state.maze[nr][nc] === 1) return;
+
+      state.player.r = nr;
+      state.player.c = nc;
+      state.steps += 1;
+
+      if (nr === state.finish.r && nc === state.finish.c) {
+        const now = performance.now();
+        state.won = true;
+        state.elapsed = (now - state.startTime) / 1000;
+        state.metamorphStart = now;
+        state.showWinOverlayAt = now + 1500;
+        state.winOverlayShown = false;
+      }
+
+      updateHud();
+    }
+
+    function bindMoveButton(id, dr, dc) {
+      const el = document.getElementById(id);
+      el.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        tryMove(dr, dc);
+      });
+    }
+
+    function handleKey(event) {
+      const key = event.key;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'].includes(key)) {
+        event.preventDefault();
+      }
+      if (key === 'ArrowUp' || key === 'w' || key === 'W') tryMove(-1, 0);
+      if (key === 'ArrowDown' || key === 's' || key === 'S') tryMove(1, 0);
+      if (key === 'ArrowLeft' || key === 'a' || key === 'A') tryMove(0, -1);
+      if (key === 'ArrowRight' || key === 'd' || key === 'D') tryMove(0, 1);
+    }
+
+    wrap.addEventListener('pointerdown', (event) => {
+      state.touchStart = { x: event.clientX, y: event.clientY };
+    });
+
+    wrap.addEventListener('pointerup', (event) => {
+      if (!state.touchStart) return;
+      const dx = event.clientX - state.touchStart.x;
+      const dy = event.clientY - state.touchStart.y;
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+      const threshold = 18;
+
+      if (Math.max(ax, ay) >= threshold) {
+        if (ax > ay) {
+          tryMove(0, dx > 0 ? 1 : -1);
+        } else {
+          tryMove(dy > 0 ? 1 : -1, 0);
+        }
+      }
+
+      state.touchStart = null;
+    });
+
+    wrap.addEventListener('pointercancel', () => {
+      state.touchStart = null;
+    });
+
+    function render(now) {
+      resizeCanvas();
+      layoutBoard();
+
+      closeTemporaryWallIfDue(now);
+      if (!state.won && now >= state.nextWallShiftAt) {
+        openRandomWall(now);
+      }
+      updateHud(now);
+      rebuildEmojiLayer();
+
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      ctx.fillRect(0, 0, w, h);
+
+      for (let r = 0; r < state.rows; r++) {
+        for (let c = 0; c < state.cols; c++) {
+          const x = state.ox + c * state.tile;
+          const y = state.oy + r * state.tile;
+
+          if (state.maze[r][c] === 1) {
+            drawWall(x, y, state.tile);
+          } else {
+            drawGround(x, y, state.tile, r, c);
+          }
+
+          if (r === state.start.r && c === state.start.c) {
+            drawStartMarker(x, y, state.tile);
+          }
+          if (r === state.finish.r && c === state.finish.c) {
+            drawFinish(x, y, state.tile);
+          }
+        }
+      }
+
+      state.renderPos.r += (state.player.r - state.renderPos.r) * 0.28;
+      state.renderPos.c += (state.player.c - state.renderPos.c) * 0.28;
+      if (Math.abs(state.player.r - state.renderPos.r) < 0.01) state.renderPos.r = state.player.r;
+      if (Math.abs(state.player.c - state.renderPos.c) < 0.01) state.renderPos.c = state.player.c;
+
+      syncPlayerEmoji(now);
+      drawMovingFog(now);
+
+      if (state.won && !state.winOverlayShown && now >= state.showWinOverlayAt) {
+        state.winOverlayShown = true;
+        setOverlay(true, `The caterpillar became a butterfly in ${state.steps} steps and ${state.elapsed.toFixed(1)} seconds.`);
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    bindMoveButton('upBtn', -1, 0);
+    bindMoveButton('leftBtn', 0, -1);
+    bindMoveButton('downBtn', 1, 0);
+    bindMoveButton('rightBtn', 0, 1);
+
+    resetBtn.addEventListener('click', restartLevel);
+    newMazeBtn.addEventListener('click', buildLevel);
+    playAgainBtn.addEventListener('click', buildLevel);
+    window.addEventListener('keydown', handleKey, { passive: false });
+    window.addEventListener('resize', resizeCanvas);
+
+    buildLevel();
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
