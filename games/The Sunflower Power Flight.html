@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>The Sunflower Power Flight</title>
+  <style>
+    :root {
+      --bg: #152315;
+      --panel: rgba(0, 0, 0, 0.42);
+      --text: #fff8d6;
+      --accent: #ffd84d;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      touch-action: none;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+    }
+
+    #gameShell {
+      position: relative;
+      width: min(100vw, 560px);
+      height: 100vh;
+      max-height: 980px;
+      background: #2f6b2f;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0,0,0,0.45);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: auto;
+    }
+
+    #hud {
+      position: absolute;
+      inset: 12px 12px auto 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .pill {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 800;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+      backdrop-filter: blur(4px);
+    }
+
+    #message {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 24px;
+      background: radial-gradient(circle, rgba(0,0,0,0.28), rgba(0,0,0,0.72));
+      z-index: 4;
+    }
+
+    #message.hidden { display: none; }
+
+    .card {
+      width: min(92%, 440px);
+      padding: 26px 22px;
+      border-radius: 24px;
+      background: rgba(15, 28, 14, 0.82);
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 18px 48px rgba(0,0,0,0.45);
+    }
+
+    .card h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 8vw, 3.2rem);
+      line-height: 0.98;
+    }
+
+    .card p {
+      margin: 10px 0;
+      font-size: 1rem;
+      line-height: 1.42;
+    }
+
+    button {
+      margin-top: 14px;
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 20px;
+      background: var(--accent);
+      color: #3a2700;
+      font-size: 1rem;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 0 #b88d00, 0 14px 25px rgba(0,0,0,0.3);
+    }
+
+    button:active {
+      transform: translateY(5px);
+      box-shadow: 0 3px 0 #b88d00, 0 8px 18px rgba(0,0,0,0.25);
+    }
+
+    #touchControls {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+      display: flex;
+      justify-content: space-between;
+      padding: 0 14px;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .touchBtn {
+      pointer-events: auto;
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(0,0,0,0.32);
+      color: white;
+      font-size: 2.1rem;
+      font-weight: 900;
+      display: grid;
+      place-items: center;
+      user-select: none;
+      backdrop-filter: blur(4px);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      #touchControls { opacity: 0.35; }
+    }
+  </style>
+</head>
+<body>
+  <main id="gameShell" aria-label="Butterfly Sunflower Racer game">
+    <canvas id="gameCanvas"></canvas>
+
+    <section id="hud">
+      <div class="pill">Fruits: <span id="fruitCount">0</span></div>
+      <div class="pill">Score: <span id="score">0</span></div>
+      <div class="pill">Speed: <span id="speed">1</span>x</div>
+    </section>
+
+    <section id="message">
+      <div class="card">
+        <h1>🦋 The Sunflower Power Flight</h1>
+        <p>Fly upward through five sunflower lanes. Move left and right, eat fruits, and avoid birds.</p>
+        <p>Every 5 fruits increases your flying speed.</p>
+        <p><strong>Controls:</strong> ← / → keys, A / D, swipe, or touch buttons.</p>
+        <button id="startBtn">Start Game</button>
+      </div>
+    </section>
+
+    <section id="touchControls" aria-label="Touch controls">
+      <div class="touchBtn" id="leftBtn">‹</div>
+      <div class="touchBtn" id="rightBtn">›</div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const shell = document.getElementById('gameShell');
+      const message = document.getElementById('message');
+      const startBtn = document.getElementById('startBtn');
+      const fruitCountEl = document.getElementById('fruitCount');
+      const scoreEl = document.getElementById('score');
+      const speedEl = document.getElementById('speed');
+      const leftBtn = document.getElementById('leftBtn');
+      const rightBtn = document.getElementById('rightBtn');
+
+      const COLS = 5;
+      const PLAYER_SIZE = 46;
+      const BIRD_SIZE = 48;
+      const FRUIT_SIZE = 34;
+      const BASE_SPEED = 180;
+      const FRUITS = ['🍓', '🍒', '🍎', '🍑', '🍇', '🍊'];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let colWidth = 0;
+      let lastTime = 0;
+      let raf = null;
+      let sunflowerOffset = 0;
+      let spawnTimer = 0;
+      let fruitTimer = 0;
+      let running = false;
+      let gameOver = false;
+
+      const keys = { left: false, right: false };
+
+      const player = {
+        x: 0,
+        y: 0,
+        targetX: 0,
+        lane: 2,
+        radius: 20,
+        moveSpeed: 620
+      };
+
+      let birds = [];
+      let fruits = [];
+      let fruitCount = 0;
+      let score = 0;
+      let speedLevel = 1;
+
+      function resize() {
+        const rect = shell.getBoundingClientRect();
+        dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        width = Math.floor(rect.width);
+        height = Math.floor(rect.height);
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        colWidth = width / COLS;
+        player.y = height - 100;
+        player.x = laneCenter(player.lane);
+        player.targetX = player.x;
+      }
+
+      function laneCenter(lane) {
+        return lane * colWidth + colWidth / 2;
+      }
+
+      function resetGame() {
+        birds = [];
+        fruits = [];
+        fruitCount = 0;
+        score = 0;
+        speedLevel = 1;
+        sunflowerOffset = 0;
+        spawnTimer = 0.45;
+        fruitTimer = 0.8;
+        player.lane = 2;
+        player.x = laneCenter(player.lane);
+        player.targetX = player.x;
+        player.y = height - 100;
+        running = true;
+        gameOver = false;
+        updateHud();
+        message.classList.add('hidden');
+        lastTime = performance.now();
+        if (raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(loop);
+      }
+
+      function updateHud() {
+        fruitCountEl.textContent = fruitCount;
+        scoreEl.textContent = score;
+        speedEl.textContent = speedLevel;
+      }
+
+      function currentSpeed() {
+        // No speed cap: every 5 fruits permanently increases the speed level.
+        return BASE_SPEED + (speedLevel - 1) * 38;
+      }
+
+      function birdGroupSize() {
+        if (fruitCount >= 100) return 3;
+        if (fruitCount >= 50) return 2;
+        return 1;
+      }
+
+      function spawnBirdAtLane(lane, y) {
+        const jitter = (Math.random() - 0.5) * colWidth * 0.16;
+        birds.push({
+          x: laneCenter(lane) + jitter,
+          y,
+          lane,
+          radius: 22,
+          wobble: Math.random() * Math.PI * 2,
+          phase: Math.random() * 10
+        });
+      }
+
+      function spawnBirdGroup() {
+        const groupSize = birdGroupSize();
+        const startLane = Math.floor(Math.random() * (COLS - groupSize + 1));
+        const y = -BIRD_SIZE - 20;
+
+        for (let i = 0; i < groupSize; i++) {
+          spawnBirdAtLane(startLane + i, y);
+        }
+      }
+
+      function spawnFruit() {
+        const lane = Math.floor(Math.random() * COLS);
+        const jitter = (Math.random() - 0.5) * colWidth * 0.34;
+        fruits.push({
+          x: laneCenter(lane) + jitter,
+          y: -FRUIT_SIZE - 20,
+          radius: 17,
+          emoji: FRUITS[Math.floor(Math.random() * FRUITS.length)],
+          spin: Math.random() * Math.PI * 2
+        });
+      }
+
+      function drawBackground(dt) {
+        const speed = currentSpeed();
+        sunflowerOffset = (sunflowerOffset + speed * dt * 0.62) % 92;
+
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
+        skyGrad.addColorStop(0, '#84d46a');
+        skyGrad.addColorStop(0.45, '#50a842');
+        skyGrad.addColorStop(1, '#26722d');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let c = 0; c <= COLS; c++) {
+          const x = c * colWidth;
+          ctx.fillStyle = c % 2 === 0 ? 'rgba(255, 246, 120, 0.10)' : 'rgba(0, 0, 0, 0.07)';
+          ctx.fillRect(x, 0, colWidth, height);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+      }
+
+      function drawSunflowers() {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '42px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", serif';
+        ctx.globalAlpha = 1;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 3;
+
+        for (let y = -80 + sunflowerOffset; y < height + 80; y += 92) {
+          for (let c = 0; c < COLS; c++) {
+            const x1 = c * colWidth + colWidth * 0.2;
+            const x2 = c * colWidth + colWidth * 0.8;
+
+            // Opaque backing discs keep sunflowers visible above the field.
+            ctx.fillStyle = 'rgba(255, 248, 204, 0.88)';
+            ctx.beginPath();
+            ctx.arc(x1, y, 24, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x2, y + 44, 24, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillText('🌻', x1, y);
+            ctx.fillText('🌻', x2, y + 44);
+          }
+        }
+        ctx.restore();
+      }
+
+      function drawEmoji(text, x, y, size, rotation = 0) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        ctx.globalAlpha = 1;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 4;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.52, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = `${size}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+      }
+
+      function drawPlayer() {
+        ctx.save();
+        ctx.globalAlpha = 0.23;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(player.x, player.y + 8, 28, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        const wingFlap = Math.sin(performance.now() / 95) * 0.12;
+        drawEmoji('🦋', player.x, player.y, PLAYER_SIZE, wingFlap);
+      }
+
+      function drawBird(bird) {
+        const wobble = Math.sin(performance.now() / 180 + bird.phase) * 0.12;
+        drawEmoji('🐦', bird.x, bird.y, BIRD_SIZE, wobble);
+      }
+
+      function drawFruit(fruit) {
+        drawEmoji(fruit.emoji, fruit.x, fruit.y, FRUIT_SIZE, Math.sin(fruit.spin) * 0.08);
+      }
+
+      function movePlayer(dt) {
+        if (keys.left && !keys.right) player.targetX -= player.moveSpeed * dt;
+        if (keys.right && !keys.left) player.targetX += player.moveSpeed * dt;
+        player.targetX = Math.max(PLAYER_SIZE / 2, Math.min(width - PLAYER_SIZE / 2, player.targetX));
+
+        const stiffness = 16;
+        player.x += (player.targetX - player.x) * Math.min(1, stiffness * dt);
+        player.lane = Math.max(0, Math.min(COLS - 1, Math.floor(player.x / colWidth)));
+      }
+
+      function updateEntities(dt) {
+        const speed = currentSpeed();
+
+        spawnTimer -= dt;
+        fruitTimer -= dt;
+
+        if (spawnTimer <= 0) {
+          spawnBirdGroup();
+          const baseDelay = Math.max(0.38, 1.08 - speedLevel * 0.045);
+          spawnTimer = baseDelay + Math.random() * 0.62;
+        }
+
+        if (fruitTimer <= 0) {
+          spawnFruit();
+          fruitTimer = 0.75 + Math.random() * 1.05;
+        }
+
+        for (const bird of birds) {
+          bird.y += speed * dt;
+          bird.x += Math.sin(performance.now() / 420 + bird.phase) * 20 * dt;
+        }
+        for (const fruit of fruits) {
+          fruit.y += speed * dt;
+          fruit.spin += dt * 5;
+        }
+
+        birds = birds.filter(b => b.y < height + BIRD_SIZE * 2);
+        fruits = fruits.filter(f => f.y < height + FRUIT_SIZE * 2);
+      }
+
+      function dist(a, b) {
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        return Math.hypot(dx, dy);
+      }
+
+      function handleCollisions() {
+        for (let i = fruits.length - 1; i >= 0; i--) {
+          const f = fruits[i];
+          if (dist(player, f) < player.radius + f.radius) {
+            fruits.splice(i, 1);
+            fruitCount += 1;
+            score += 100 * speedLevel;
+            speedLevel = 1 + Math.floor(fruitCount / 5);
+            updateHud();
+          }
+        }
+
+        for (const b of birds) {
+          if (dist(player, b) < player.radius + b.radius - 6) {
+            endGame();
+            return;
+          }
+        }
+      }
+
+      function endGame() {
+        running = false;
+        gameOver = true;
+        cancelAnimationFrame(raf);
+        message.classList.remove('hidden');
+        message.innerHTML = `
+          <div class="card">
+            <h1>🐦 Game Over</h1>
+            <p>The bird caught and ate the butterfly.</p>
+            <p><strong>Fruits eaten:</strong> ${fruitCount}</p>
+            <p><strong>Final score:</strong> ${score}</p>
+            <p><strong>Final speed:</strong> ${speedLevel}x</p>
+            <button id="restartBtn">Race Again</button>
+          </div>
+        `;
+        document.getElementById('restartBtn').addEventListener('click', resetGame);
+      }
+
+      function drawColumnLabels() {
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = '#fffad1';
+        ctx.font = '700 18px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (let c = 0; c < COLS; c++) {
+          ctx.fillText(String(c + 1), laneCenter(c), 64);
+        }
+        ctx.restore();
+      }
+
+      function loop(now) {
+        if (!running) return;
+        const dt = Math.min(0.033, (now - lastTime) / 1000 || 0);
+        lastTime = now;
+
+        drawBackground(dt);
+        drawColumnLabels();
+        movePlayer(dt);
+        updateEntities(dt);
+        handleCollisions();
+
+        drawSunflowers();
+        for (const fruit of fruits) drawFruit(fruit);
+        for (const bird of birds) drawBird(bird);
+        drawPlayer();
+
+        score += Math.floor(currentSpeed() * dt * 0.15);
+        scoreEl.textContent = score;
+
+        if (running) raf = requestAnimationFrame(loop);
+      }
+
+      function tapMove(dir) {
+        player.targetX = Math.max(
+          PLAYER_SIZE / 2,
+          Math.min(width - PLAYER_SIZE / 2, player.targetX + dir * colWidth)
+        );
+      }
+
+      window.addEventListener('resize', resize);
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = true;
+        if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = true;
+        if ((e.key === 'Enter' || e.key === ' ') && !running) resetGame();
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = false;
+        if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = false;
+      });
+
+      leftBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tapMove(-1); });
+      rightBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tapMove(1); });
+
+      let touchStartX = null;
+      canvas.addEventListener('pointerdown', (e) => {
+        touchStartX = e.clientX;
+      });
+      canvas.addEventListener('pointerup', (e) => {
+        if (touchStartX === null) return;
+        const dx = e.clientX - touchStartX;
+        if (Math.abs(dx) > 24) tapMove(dx > 0 ? 1 : -1);
+        touchStartX = null;
+      });
+
+      startBtn.addEventListener('click', resetGame);
+
+      resize();
+      drawBackground(0);
+      drawColumnLabels();
+      drawSunflowers();
+      drawPlayer();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Palette & Font Explorer — aliiiii</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Space+Grotesk:wght@400;500&family=Exo+2:wght@400;600&family=Rajdhani:wght@400;600&family=Michroma&family=Audiowide&family=Oxanium:wght@400;600&family=Electrolize&family=Chakra+Petch:wght@400;600&family=Nova+Square&family=Share+Tech+Mono&family=Jura:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: #fdf6fa;
+      color: #4a3562;
+      padding: 48px 40px;
+      line-height: 1.5;
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: #6e5a9e;
+      opacity: 0.7;
+      margin-bottom: 48px;
+    }
+
+    .section-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #c4b1d4;
+      margin-bottom: 24px;
+    }
+
+    /* ---------- COLOR GRID ---------- */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 64px;
+    }
+
+    .color-card {
+      border-radius: 14px;
+      overflow: hidden;
+      background: white;
+      box-shadow: 0 2px 12px rgba(74, 53, 98, 0.06);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .color-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(74, 53, 98, 0.1);
+    }
+
+    .color-card__swatch {
+      height: 100px;
+    }
+
+    .color-card__info {
+      padding: 12px 14px;
+    }
+
+    .color-card__name {
+      font-weight: 600;
+      font-size: 0.82rem;
+      margin-bottom: 2px;
+    }
+
+    .color-card__hex {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.72rem;
+      color: #9b8ec4;
+    }
+
+    /* ---------- FONT GRID ---------- */
+    .font-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .font-card {
+      background: white;
+      border-radius: 14px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 12px rgba(74, 53, 98, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .font-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(74, 53, 98, 0.1);
+    }
+
+    .font-card__meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .font-card__name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.58rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #c4b1d4;
+    }
+
+    .font-card__category {
+      font-size: 0.6rem;
+      color: #e8a0bf;
+      background: #fdf6fa;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .font-card__preview {
+      font-size: 1.5rem;
+      line-height: 1.35;
+      color: #4a3562;
+    }
+
+    .font-card__sample {
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: #6e5a9e;
+      opacity: 0.65;
+    }
+
+    @media (max-width: 800px) {
+      .color-grid { grid-template-columns: repeat(2, 1fr); }
+      .font-grid  { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Palette & Font Explorer</h1>
+  <p class="subtitle">Pastel colors and sci-fi typefaces for aliiiii</p>
+
+  <!-- ====== COLORS ====== -->
+  <p class="section-label">Pastel Palette — 10 colors</p>
+
+  <div class="color-grid">
+    <div class="color-card">
+      <div class="color-card__swatch" style="background: #f5c6d0"></div>
+      <div class="color-card__info">
+        <p class="color-card__name">Rose Quartz</p>
+        <p class="color-card__hex">#F5C6D0</p>
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="color-card__swatch" style="background: #e8a0bf"></div>
+      <div class="color-card__info">
+        <p class="color-card__name">Blush Pink</p>
+        <p class="color-card__hex">#E8A0BF</p>
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="color-card__swatch" style="background: #ddb4f0"></div>
+      <div class="color-card__info">
+        <p class="color-card__name">Soft Orchid</p>
+        <p class="color-card__hex">#DDB4F0</p>
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="color-card__swatch" style="background: #c4b1d4"></div>
+      <div class="color-card__info">
+        <p class="color-card__name">Lavender Mist</p>
+        <p class="color-card__hex">#C4B1D4</p>
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="color-card__swatch" style="background: #b8c9f2"></div>
+      <div class="color-card__info">
+        <p class="color-card__name">Periwinkle</p>
+        <p class="color-card__hex">#B8C9F2</p>
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="color-card__swatch" style="background: #a8dce6"></div>
+      <div class="color-card__info">
+        <p class="color-card__name">Pale Cyan</p>
+        <p class="color-card__hex">#A8DCE6</p>
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="color-card__swatch" style="background: #b5e6c8"></div>
+      <div class="color-card__info">
+        <p class="color-card__name">Mint Foam</p>
+        <p class="color-card__hex">#B5E6C8</p>
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="color-card__swatch" style="background: #f6e4a8"></div>
+      <div class="color-card__info">
+        <p class="color-card__name">Buttercream</p>
+        <p class="color-card__hex">#F6E4A8</p>
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="color-card__swatch" style="background: #f5cba7"></div>
+      <div class="color-card__info">
+        <p class="color-card__name">Peach Sorbet</p>
+        <p class="color-card__hex">#F5CBA7</p>
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="color-card__swatch" style="background: #f0d5e8"></div>
+      <div class="color-card__info">
+        <p class="color-card__name">Cotton Candy</p>
+        <p class="color-card__hex">#F0D5E8</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== FONTS ====== -->
+  <p class="section-label">Sci-Fi Typefaces — 10 fonts</p>
+
+  <div class="font-grid">
+    <div class="font-card">
+      <div class="font-card__meta">
+        <span class="font-card__name">Orbitron</span>
+        <span class="font-card__category">Geometric</span>
+      </div>
+      <p class="font-card__preview" style="font-family: 'Orbitron', sans-serif; font-weight: 600">A rare opportunity for escapism</p>
+      <p class="font-card__sample" style="font-family: 'Orbitron', sans-serif">ABCDEFGHIJKLM 0123456789</p>
+    </div>
+
+    <div class="font-card">
+      <div class="font-card__meta">
+        <span class="font-card__name">Exo 2</span>
+        <span class="font-card__category">Neo-grotesque</span>
+      </div>
+      <p class="font-card__preview" style="font-family: 'Exo 2', sans-serif; font-weight: 600">A rare opportunity for escapism</p>
+      <p class="font-card__sample" style="font-family: 'Exo 2', sans-serif">ABCDEFGHIJKLM 0123456789</p>
+    </div>
+
+    <div class="font-card">
+      <div class="font-card__meta">
+        <span class="font-card__name">Rajdhani</span>
+        <span class="font-card__category">Condensed tech</span>
+      </div>
+      <p class="font-card__preview" style="font-family: 'Rajdhani', sans-serif; font-weight: 600">A rare opportunity for escapism</p>
+      <p class="font-card__sample" style="font-family: 'Rajdhani', sans-serif">ABCDEFGHIJKLM 0123456789</p>
+    </div>
+
+    <div class="font-card">
+      <div class="font-card__meta">
+        <span class="font-card__name">Michroma</span>
+        <span class="font-card__category">Wide display</span>
+      </div>
+      <p class="font-card__preview" style="font-family: 'Michroma', sans-serif">A rare opportunity for escapism</p>
+      <p class="font-card__sample" style="font-family: 'Michroma', sans-serif">ABCDEFGHIJKLM 0123456789</p>
+    </div>
+
+    <div class="font-card">
+      <div class="font-card__meta">
+        <span class="font-card__name">Audiowide</span>
+        <span class="font-card__category">Retro-futurist</span>
+      </div>
+      <p class="font-card__preview" style="font-family: 'Audiowide', sans-serif">A rare opportunity for escapism</p>
+      <p class="font-card__sample" style="font-family: 'Audiowide', sans-serif">ABCDEFGHIJKLM 0123456789</p>
+    </div>
+
+    <div class="font-card">
+      <div class="font-card__meta">
+        <span class="font-card__name">Oxanium</span>
+        <span class="font-card__category">Rounded tech</span>
+      </div>
+      <p class="font-card__preview" style="font-family: 'Oxanium', sans-serif; font-weight: 600">A rare opportunity for escapism</p>
+      <p class="font-card__sample" style="font-family: 'Oxanium', sans-serif">ABCDEFGHIJKLM 0123456789</p>
+    </div>
+
+    <div class="font-card">
+      <div class="font-card__meta">
+        <span class="font-card__name">Electrolize</span>
+        <span class="font-card__category">Digital</span>
+      </div>
+      <p class="font-card__preview" style="font-family: 'Electrolize', sans-serif">A rare opportunity for escapism</p>
+      <p class="font-card__sample" style="font-family: 'Electrolize', sans-serif">ABCDEFGHIJKLM 0123456789</p>
+    </div>
+
+    <div class="font-card">
+      <div class="font-card__meta">
+        <span class="font-card__name">Chakra Petch</span>
+        <span class="font-card__category">Angular</span>
+      </div>
+      <p class="font-card__preview" style="font-family: 'Chakra Petch', sans-serif; font-weight: 600">A rare opportunity for escapism</p>
+      <p class="font-card__sample" style="font-family: 'Chakra Petch', sans-serif">ABCDEFGHIJKLM 0123456789</p>
+    </div>
+
+    <div class="font-card">
+      <div class="font-card__meta">
+        <span class="font-card__name">Nova Square</span>
+        <span class="font-card__category">Blocky</span>
+      </div>
+      <p class="font-card__preview" style="font-family: 'Nova Square', sans-serif">A rare opportunity for escapism</p>
+      <p class="font-card__sample" style="font-family: 'Nova Square', sans-serif">ABCDEFGHIJKLM 0123456789</p>
+    </div>
+
+    <div class="font-card">
+      <div class="font-card__meta">
+        <span class="font-card__name">Jura</span>
+        <span class="font-card__category">Elegant tech</span>
+      </div>
+      <p class="font-card__preview" style="font-family: 'Jura', sans-serif; font-weight: 600">A rare opportunity for escapism</p>
+      <p class="font-card__sample" style="font-family: 'Jura', sans-serif">ABCDEFGHIJKLM 0123456789</p>
+    </div>
+  </div>
+
+</body>
+</html>
